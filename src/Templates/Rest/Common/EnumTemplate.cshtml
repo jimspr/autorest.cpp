@@ -1,0 +1,104 @@
+﻿@using System.Linq
+@using AutoRest.Core.Model
+@inherits AutoRest.Core.Template<AutoRest.Cpp.Model.EnumTypeCpp>
+@Header("// ")
+#pragma once
+@EmptyLine
+#include <rapidjson/document.h>
+#include <string>
+#include <optional>
+#include <vector>
+#include <unordered_map>
+#include <autorest_json.h>
+@EmptyLine
+namespace @(Settings.Namespace)::@(Settings.ModelsName)
+{
+@EmptyLine
+    /// <summary>
+    @WrapComment("/// ", "Defines values for " + Model.Name + ".")
+    /// </summary>
+    @if (!Model.ModelAsString)
+    {
+    @:enum class @Model.ClassName
+    @:{
+        for (int i = 0; i < Model.Values.Count - 1; i++)
+        {
+@:        @(Model.Values[i].MemberName),
+        }
+@:        @(Model.Values.Last().MemberName)
+    @:};
+    }
+    else
+    {
+    @:struct @Model.ClassName
+    @:{
+        foreach (var t in Model.Values)
+        {
+@:        const std::string @t.MemberName = "@t.SerializedName";
+        }
+    @:};
+    }
+
+}
+
+@if (!Model.ModelAsString)
+{
+<text>
+namespace autorest::json
+{
+    using namespace @(Settings.Namespace)::@(Settings.ModelsName);
+    template <>
+    struct serializer<@Model.ClassName>
+    {
+    static rapidjson::Value serialize(@Model.ClassName value, rapidjson::Value::AllocatorType &allocator)
+    {
+        switch (value)
+        {
+                @foreach (var t in Model.Values)
+                {
+<text>                    
+        case @Model.ClassName::@t.MemberName:
+            return rapidjson::Value("@t.SerializedName");
+</text>            
+                }
+        }
+        return rapidjson::Value("_invalid");
+    }
+    static @Model.ClassName deserialize(const rapidjson::Value &value)
+    {
+        auto str = value.GetString();
+                @foreach (var t in Model.Values)
+                {
+<text>                    
+        if (strcmp(str, "@t.SerializedName") == 0)
+            return @Model.ClassName::@t.MemberName;
+</text>
+                }
+        throw std::invalid_argument(str);
+    }
+    };
+} // namespace
+namespace autorest::util
+{
+    using namespace @(Settings.Namespace)::@(Settings.ModelsName);
+    template <>
+    struct string_converter<@Model.ClassName>
+    {
+        static std::string to_string(@Model.ClassName value)
+        {
+            switch (value)
+            {
+                @foreach (var t in Model.Values)
+                {
+<text>                    
+            case @Model.ClassName::@t.MemberName:
+                return "@t.SerializedName";
+</text>      
+                }      
+            }
+            return "_invalid";
+        }
+    };
+} // namespace
+</text>
+}

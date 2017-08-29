@@ -1,0 +1,183 @@
+@using System.Linq
+@using System.Collections.Generic;
+@using AutoRest.Core
+@using AutoRest.Core.Model
+@using AutoRest.Core.Utilities
+@using AutoRest.Cpp
+@using AutoRest.Cpp.Model
+@using AutoRest.Extensions
+@inherits Template<global::AutoRest.Cpp.Model.CompositeTypeCpp>
+@Header("// ")
+#pragma once
+#include <rapidjson/document.h>
+#include <rapidjson/pointer.h>
+#include <string>
+#include <optional>
+#include <vector>
+#include <unordered_map>
+#include <chrono>
+#include <autorest_json.h>
+@if (Model.BaseModelType != null)
+{
+@:// Include base type
+@:#include "@(Model.BaseModelType.Name).h"
+}
+// Predeclare this type so that includes after this can use name
+namespace @(Settings.Namespace)::@(Settings.ModelsName)
+{
+   class @Model.Name;
+}
+// Include dependent types used in properties of this class
+@{
+    HashSet<string> set = new HashSet<string>();
+    Model.AddReferencedCompositeTypes(set);
+
+    foreach (var include in set)
+    {
+//@:class @(include);
+    }
+    foreach (var include in set)
+    {
+@:#include "@(include).h"
+    }
+}
+@EmptyLine
+namespace @(Settings.Namespace)::@(Settings.ModelsName)
+{
+    //using XXSystem.Linq;
+    using namespace std;
+    using namespace autorest::json;
+    using namespace autorest::util;
+@EmptyLine
+
+@if (!string.IsNullOrEmpty(Model.Summary) || !string.IsNullOrWhiteSpace(Model.Documentation))
+{
+    @:/// <summary>
+    @:@WrapComment("/// ", (string.IsNullOrEmpty(Model.Summary) ? Model.Documentation : Model.Summary).EscapeXmlComment())
+        if (!string.IsNullOrEmpty(Model.ExternalDocsUrl))
+        {
+    @:/// <see href="@Model.ExternalDocsUrl" />
+        }
+    @:/// </summary>
+}
+@if (!string.IsNullOrEmpty(Model.Summary) && !string.IsNullOrWhiteSpace(Model.Documentation))
+{
+    @:/// <remarks>
+    @:@WrapComment("/// ", Model.Documentation.EscapeXmlComment())
+    @:/// </remarks>
+}
+
+    @if (Model.NeedsPolymorphicConverter)
+    {
+    //@:[[Newtonsoft::Json::JsonObject("@Model.SerializedName")]]
+    }
+
+    @if (Model.NeedsTransformationConverter)
+    {
+    //@:[Microsoft.Rest.Serialization.JsonTransformation]
+    }
+
+    class @Model.Name@(Model.BaseModelType != null ? " : " + Model.BaseModelType.Name : "")
+    {
+        @foreach (var property in Model.Properties.Where(p => !p.IsConstant))
+        {
+        @:/// <summary>
+        @:@WrapComment("/// ", property.GetFormattedPropertySummary())
+        @:/// </summary>
+            if(!string.IsNullOrEmpty(property.Summary) && !string.IsNullOrEmpty(property.Documentation))
+            { 
+        @:/// <remarks>
+        @:@WrapComment("/// ", property.Documentation)
+        @:/// </remarks>
+            }
+        @:@property.ModelTypeName @property.Name;
+        }
+        @EmptyLine
+    public:
+        /// <summary>
+        @WrapComment("/// ", ("Initializes a new instance of the " + Model.Name + " class.").EscapeXmlComment())
+        /// </summary>
+        @(Model.Name)();
+        @EmptyLine
+
+    @if (!string.IsNullOrEmpty(Model.ConstructorParameters))
+    {
+        @:/// <summary>
+        @:@WrapComment("/// ", ("Initializes a new instance of the " + Model.Name + " class.").EscapeXmlComment())
+        @:/// </summary>
+        foreach (var parameter in Model.ConstructorParametersDocumentation)
+        {
+        @:@WrapComment("/// ", parameter)
+        }
+        @:@(Model.Name)(@Model.ConstructorParameters);
+    }
+
+        @if (Model.Properties.Any(p => p.IsConstant))
+        {
+        }
+        @EmptyLine
+        @foreach (var property in Model.Properties.Where(p => !p.IsConstant))
+        {
+        @:/// <summary>
+        @:@WrapComment("/// ", property.GetFormattedPropertySummary())
+        @:/// </summary>
+            if(!string.IsNullOrEmpty(property.Summary) && !string.IsNullOrEmpty(property.Documentation))
+            { 
+        @:/// <remarks>
+        @:@WrapComment("/// ", property.Documentation)
+        @:/// </remarks>
+            }
+
+        @:const @property.ModelTypeName& get_@(property.Name)();
+        @if(property.IsReadOnly)
+        {
+          @:private:
+        }
+        @:void set_@(property.Name)(const @property.ModelTypeName& param_);
+        @if(property.IsReadOnly)
+        {
+          @:public:
+        }
+//        @:@property.ModelTypeName @property.Name { get; @(property.IsReadOnly ? "private " : "")set; }
+        @EmptyLine
+        }
+
+        @foreach (var property in Model.Properties.Where(p => p.IsConstant))
+        {
+        @:/// <summary>
+        @:@WrapComment("/// ", property.Documentation.EscapeXmlComment())
+        @:/// </summary>
+        @:static const @property.ModelTypeName @property.Name;
+        @EmptyLine
+        }
+@if(@Model.ShouldValidateChain())
+{
+        @:/// <summary>
+        @:/// Validate the object.
+        @:/// </summary>
+        @:/// <exception cref="Microsoft.Rest.ValidationException">
+        @:/// Thrown if validation fails
+        @:/// </exception>
+        if (@Model.BaseModelType.ShouldValidateChain())
+        {
+        @:void validate() override;
+        }
+        else
+        {
+        @:virtual void validate();
+        }
+}
+
+        /// <summary>
+        /// Serializes the object to JSON
+        /// </summary>
+        ::rapidjson::Value serialize(::rapidjson::Value::AllocatorType& allocator) const;
+
+        /// <summary>
+        /// Deserializes JSON to an instance of @Model.Name
+        /// </summary>
+        static @Model.Name deserialize(const char* payload);
+        static @Model.Name deserialize(const ::rapidjson::Value& value);
+        static void deserialize(@Model.Name& result, const ::rapidjson::Value& value);
+    };
+} /* namespace */

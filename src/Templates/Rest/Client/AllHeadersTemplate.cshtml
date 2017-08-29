@@ -1,0 +1,21 @@
+﻿@using System
+@using System.Linq
+@using AutoRest.Core.Utilities
+@using AutoRest.Cpp
+@using AutoRest.Cpp.Model
+@using AutoRest.Cpp.Templates
+@inherits AutoRest.Core.Template<CodeModelCpp>
+#pragma once
+@EmptyLine
+
+// headers that define enums
+@foreach (EnumTypeCpp enumType in Model.EnumTypes)
+{
+@:#include "@(enumType.Name).h"
+}
+
+// Models
+@foreach (CompositeTypeCpp model in Model.ModelTypes.Union(Model.HeaderTypes))
+{
+@:#include "@(model.Name).h"
+}

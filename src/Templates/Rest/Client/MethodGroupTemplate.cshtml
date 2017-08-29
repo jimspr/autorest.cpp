@@ -1,0 +1,72 @@
+﻿@using AutoRest.Cpp.Model
+@using AutoRest.Cpp.Templates
+@using System.Collections.Generic
+
+@inherits AutoRest.Core.Template<AutoRest.Cpp.Model.MethodGroupCpp>
+@Header("// ")
+#pragma once
+@EmptyLine
+#include "models/all_@(Model.CodeModel.Name).h"
+#include <rapidjson/writer.h>
+#include <autorest_util.h>
+#include <string>
+#include <map>
+#include <vector>
+#include <variant>
+#include <awaituv.h>
+#include <awaitcurl.h>
+//#include "I@(Model.TypeName).h"
+//#include "@(Model.CodeModel.Name).h"
+// include all dependent composite types
+@{
+    HashSet<string> types = new HashSet<string>();
+    foreach (MethodCpp method in Model.Methods)
+    {
+        // Gather up all dependent types in a set and include them
+        // look at return types and parameter types
+        method.AddReferencedCompositeTypes(types);
+    }
+    foreach (var type in types)
+    {
+@:#include "models/@(type).h"
+    }
+}
+@EmptyLine
+
+namespace @Settings.Namespace
+{
+@foreach (var usingString in Model.Usings) {
+    @:using namespace @usingString;
+}
+    using namespace awaituv;
+    using namespace awaitcurl;
+    class @Model.CodeModel.Name; // forward decl
+    
+@EmptyLine
+    /// <summary>
+    /// @(Model.TypeName) operations.
+    /// </summary>
+    class @(Model.TypeName) // : service_operations_t<@Model.CodeModel.Name>, I@(Model.TypeName)
+    {
+    public:
+        @Model.CodeModel.Name& client;
+        ::awaitcurl::curl_requester_t& root_handler;
+
+        /// <summary>
+        /// Initializes a new instance of the @(Model.TypeName) class.
+        /// </summary>
+        /// <param name='client'>
+        /// Reference to the service client.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">
+        /// Thrown when a required parameter is null
+        /// </exception>
+        @(Model.TypeName)(@Model.CodeModel.Name& client);
+        @EmptyLine
+        @foreach (MethodCpp method in Model.Methods)
+        {
+        @:@(Include(new MethodPrototypeTemplate(), method))
+        @EmptyLine
+        }
+    };
+}

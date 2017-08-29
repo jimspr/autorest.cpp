@@ -1,0 +1,244 @@
+@using System.Linq
+@using System.Collections.Generic;
+@using AutoRest.Core
+@using AutoRest.Core.Model
+@using AutoRest.Core.Utilities
+@using AutoRest.Cpp
+@using AutoRest.Cpp.Model
+@using AutoRest.Extensions
+@inherits Template<global::AutoRest.Cpp.Model.CompositeTypeCpp>
+@Header("// ")
+#include "@(Model.Name).h"
+@EmptyLine
+namespace @(Settings.Namespace)::@(Settings.ModelsName)
+{
+    using namespace std;
+    using namespace autorest::json;
+    using namespace autorest::util;
+@EmptyLine
+
+@(Model.Name)::@(Model.Name)()
+{
+}
+@EmptyLine
+
+
+@if (!string.IsNullOrEmpty(Model.ConstructorParameters))
+{
+@:/// <summary>
+@:@WrapComment("/// ", ("Initializes a new instance of the " + Model.Name + " class.").EscapeXmlComment())
+@:/// </summary>
+foreach (var parameter in Model.ConstructorParametersDocumentation)
+{
+@:@WrapComment("/// ", parameter)
+}
+@:@(Model.Name)::@(Model.Name)(@Model.ConstructorParameters)
+    if (!string.IsNullOrEmpty(Model.BaseConstructorCall))
+    {
+    @:@(Model.BaseConstructorCall)
+    }
+@:{
+
+    foreach (var property in Model.Properties.Where(p => !p.IsConstant))
+    {
+        var propName = CodeNamer.Instance.CamelCase(property.Name);
+        if (property.Name.Value.Equals(propName))
+        {
+    @:this->@(property.Name) = @propName;
+        }
+        else
+        {
+    @:this->@(property.Name) = @propName;
+        }
+    }
+@:}
+}
+
+@if (Model.Properties.Any(p => p.IsConstant))
+{
+}
+@EmptyLine
+@foreach (var property in Model.Properties.Where(p => !p.IsConstant))
+{
+@:/// <summary>
+@:@WrapComment("/// ", property.GetFormattedPropertySummary())
+@:/// </summary>
+    if(!string.IsNullOrEmpty(property.Summary) && !string.IsNullOrEmpty(property.Documentation))
+    { 
+@:/// <remarks>
+@:@WrapComment("/// ", property.Documentation)
+@:/// </remarks>
+    }
+
+@:const @property.ModelTypeName& @(Model.Name)::get_@(property.Name)() { return @property.Name; }
+@:void @(Model.Name)::set_@(property.Name)(const @property.ModelTypeName& param_) { @property.Name = param_; }
+//@:@property.ModelTypeName @property.Name { get; @(property.IsReadOnly ? "private " : "")set; }
+@EmptyLine
+}
+
+@foreach (var property in Model.Properties.Where(p => p.IsConstant))
+{
+@:/// <summary>
+@:@WrapComment("/// ", property.Documentation.EscapeXmlComment())
+@:/// </summary>
+@:static const @property.ModelTypeName @property.Name;
+@EmptyLine
+}
+@if(@Model.ShouldValidateChain())
+{
+@:/// <summary>
+@:/// Validate the object.
+@:/// </summary>
+@:/// <exception cref="Microsoft.Rest.ValidationException">
+@:/// Thrown if validation fails
+@:/// </exception>
+@:void @(Model.Name)::validate()
+@:{
+    bool anythingToValidate = false;
+
+    if (Model.BaseModelType != null && Model.BaseModelType.ShouldValidateChain())
+    {
+        anythingToValidate = true;
+    @:@(Model.BaseModelType.ClassName)::validate();
+    }
+
+    foreach (PropertyCpp property in Model.Properties.Where(p => p.IsRequired && !p.IsReadOnly && !p.IsConstant && p.IsNullable() ))
+    {
+        anythingToValidate = true;
+    @:if (this->@property.Name == null)
+    @:{
+        @:throw new Microsoft.Rest.ValidationException(Microsoft.Rest.ValidationRules.CannotBeNull, "@property.Name");
+    @:}
+    @:
+    }
+    foreach (var property in Model.Properties.Where(p => !p.IsConstant 
+        && (p.Constraints.Any() || !(p.ModelType is PrimaryType))))
+    {
+        anythingToValidate = true;
+
+        if (property.IsNullable())
+        {
+<text>
+    if (@(property.Name).has_value())
+    {
+        @property.ModelType.ValidateType(Model, $"{property.Name}.value()", property.Constraints)
+    }
+</text>
+        }
+        else
+        {
+<text>
+    @property.ModelType.ValidateType(Model, $"{property.Name}", property.Constraints)
+</text>
+        }
+    }
+    if (!anythingToValidate)
+    {
+    @://Nothing to validate
+    }
+@:}
+}
+@EmptyLine
+::rapidjson::Value @(Model.Name)::serialize(::rapidjson::Value::AllocatorType& allocator) const
+{
+@if (Model.BaseModelType != null)
+{
+    @:::rapidjson::Value result = @(Model.BaseModelType.Name)::serialize(allocator);
+}
+else
+{
+    @:::rapidjson::Value result(::rapidjson::kObjectType);
+}
+    
+@foreach(var property in Model.Properties.Where(p => !p.IsConstant))
+{
+    if (property.WasFlattened())
+    {
+        string name = property.SerializedName;
+        name = "/" + name.Replace('.', '/');
+        if (property.IsNullable())
+        {
+    @:if(@(property.Name).has_value())
+<text>
+        SetValueByPointer(result, "@(name)", json_serialize(@(property.Name), allocator), allocator);
+</text>
+        }
+        else
+        {
+<text>
+    SetValueByPointer(result, "@(name)", json_serialize(@(property.Name), allocator), allocator);
+</text>
+        }
+    }
+    else
+    {
+        if (property.IsNullable())
+        {
+<text>                
+    if(@(property.Name).has_value())
+        result.AddMember("@property.SerializedName", json_serialize(@(property.Name), allocator), allocator);
+</text>                
+        }
+        else
+        {
+<text>                
+    result.AddMember("@property.SerializedName", json_serialize(@(property.Name), allocator), allocator);
+</text>                
+        }
+    }
+}
+    return result;
+}
+@EmptyLine
+/// <summary>
+/// Deserializes JSON to an instance of @Model.Name
+/// </summary>
+@Model.Name @(Model.Name)::deserialize(const char* payload) 
+{
+    ::rapidjson::Document d;
+    d.Parse(payload);
+    return deserialize(d);
+}    
+@EmptyLine
+@Model.Name @(Model.Name)::deserialize(const ::rapidjson::Value& value) 
+{
+    @Model.Name result;
+    deserialize(result, value);
+    return result;
+}
+@EmptyLine
+void @(Model.Name)::deserialize(@Model.Name& result, const ::rapidjson::Value& value) 
+{
+@if (Model.BaseModelType != null)
+{
+    @:@(Model.BaseModelType.Name)::deserialize(result, value);
+}
+    // Calling HasMember should only be needed for optional properties but not all servers respect this requirement
+    // and return incomplete objects.
+@foreach(var property in Model.Properties.Where(p => !p.IsConstant))
+{
+    @:// @property.ModelType.Name @property.ModelType.ClassName @property.ModelType.DeclarationName
+    if (property.WasFlattened())
+    {
+        string jsonname = property.SerializedName;
+        jsonname = "/" + jsonname.Replace('.', '/');
+<text>
+    json_deserialize(result.@(property.Name), GetValueByPointer(value, "@jsonname"));
+</text>
+    }
+    else
+    {
+<text>
+    if (value.HasMember("@property.SerializedName"))
+        json_deserialize(result.@(property.Name), value["@property.SerializedName"]);
+</text>
+    }
+}
+}
+ 
+@foreach (var property in Model.Properties.Where(p => p.IsConstant))
+{
+@:const @property.ModelTypeName @Model.Name::@property.Name {@(property.DefaultValue)};
+@EmptyLine
+}
+} /* namespace */

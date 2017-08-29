@@ -1,0 +1,126 @@
+﻿@using System
+@using System.Linq
+@using AutoRest.Core.Utilities
+@using AutoRest.Cpp.Model
+@using AutoRest.Cpp.Templates
+@inherits AutoRest.Core.Template<CodeModelCpp>
+@Header("// ")
+#pragma once
+@EmptyLine
+#include "models/all_@(Model.Name).h"
+#include <rapidjson/writer.h>
+#include <autorest_util.h>
+#include <awaitcurl.h>
+#include <map>
+
+//#include "I@(Model.Name).h"
+@foreach (var operation in Model.AllOperations) 
+{
+@:#include "@(operation.TypeName).h"
+}
+
+
+@EmptyLine
+namespace @Settings.Namespace
+{
+    using namespace awaitcurl;
+    //using Microsoft.Rest;
+@foreach (var usingString in Model.Usings) {
+    @:using namespace @usingString;
+}
+@EmptyLine
+    @if (!string.IsNullOrWhiteSpace(Model.Documentation))
+    {
+    @:/// <summary>
+    @:@WrapComment("/// ", Model.Documentation.EscapeXmlComment())
+    @:/// </summary>
+    }
+
+    class @Model.Name : public service_client_t //,I@(Model.Name)
+    {
+    public:
+        @(Include(new ServiceClientBodyTemplate(), Model))
+
+        /// <summary>
+        /// An optional partial-method to perform custom initialization.
+        ///</summary> 
+        void CustomInitialize() {}
+
+        /// <summary>
+        /// Initializes client properties.
+        /// </summary>
+        private:
+        void Initialize()
+        {
+        @foreach (var operation in Model.AllOperations) 
+        {
+//            @:this->@(operation.NameForProperty) = make_shared<@(operation.TypeName)>(this);
+        }
+
+        @if (Model.IsCustomBaseUri)
+        {
+            @:this->base_uri = "@Model.BaseUrl";
+        }
+        else
+        {
+//            @:this->BaseUri = new System.Uri("@Model.BaseUrl");
+            @:this->base_uri = "@Model.BaseUrl";
+        }
+
+        @foreach (var property in Model.Properties.Where(p => !p.DefaultValue.IsNullOrEmpty()))
+        {
+            @:this->@(property.Name) = @(property.DefaultValue);
+        }
+#if 0
+            SerializationSettings = new Newtonsoft.Json.JsonSerializerSettings
+            {
+                Formatting = Newtonsoft.Json.Formatting.Indented,
+                DateFormatHandling = Newtonsoft.Json.DateFormatHandling.IsoDateFormat,
+                DateTimeZoneHandling = Newtonsoft.Json.DateTimeZoneHandling.Utc,
+                NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore,
+                ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Serialize,
+                ContractResolver = new Microsoft.Rest.Serialization.ReadOnlyJsonContractResolver(),
+                Converters = new  System.Collections.Generic.List<Newtonsoft.Json.JsonConverter>
+                    {
+                        new Microsoft.Rest.Serialization.Iso8601TimeSpanConverter()
+                    }
+            };
+            @if (Model.NeedsTransformationConverter)
+            {
+            @:SerializationSettings.Converters.Add(new Microsoft.Rest.Serialization.TransformationJsonConverter());
+            }
+            DeserializationSettings = new Newtonsoft.Json.JsonSerializerSettings
+            {
+                DateFormatHandling = Newtonsoft.Json.DateFormatHandling.IsoDateFormat,
+                DateTimeZoneHandling = Newtonsoft.Json.DateTimeZoneHandling.Utc,
+                NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore,
+                ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Serialize,
+                ContractResolver = new Microsoft.Rest.Serialization.ReadOnlyJsonContractResolver(),
+                Converters = new System.Collections.Generic.List<Newtonsoft.Json.JsonConverter>
+                    {
+                        new Microsoft.Rest.Serialization.Iso8601TimeSpanConverter()
+                    }
+            };
+            @foreach (var polymorphicType in Model.ModelTypes.Where(t => t.IsPolymorphic))
+            {
+            @:SerializationSettings.Converters.Add(new Microsoft.Rest.Serialization.PolymorphicSerializeJsonConverter<@(polymorphicType.Name)>("@(polymorphicType.PolymorphicDiscriminator)"));
+            @:DeserializationSettings.Converters.Add(new  Microsoft.Rest.Serialization.PolymorphicDeserializeJsonConverter<@(polymorphicType.Name)>("@(polymorphicType.PolymorphicDiscriminator)"));
+            }
+#endif
+            CustomInitialize();
+            
+            @if (Model.NeedsTransformationConverter)
+            {
+            //@:DeserializationSettings.Converters.Add(new Microsoft.Rest.Serialization.TransformationJsonConverter());
+            }
+    
+        }    
+    public:
+        @foreach (MethodCpp method in Model.Methods.Where( m => m.Group.IsNullOrEmpty()))
+        {
+        @:@(Include(new MethodPrototypeTemplate(), method))
+        @EmptyLine
+        @:
+        }
+    };
+}

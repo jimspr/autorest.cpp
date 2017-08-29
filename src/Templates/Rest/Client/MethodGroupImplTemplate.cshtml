@@ -1,0 +1,44 @@
+@using System
+@using System.Linq;
+@using AutoRest.Core.Utilities
+@using AutoRest.Cpp
+@using AutoRest.Cpp.Model
+@inherits AutoRest.Core.Template<AutoRest.Cpp.Model.MethodGroupCpp>
+@Header("// ")
+#pragma once
+@EmptyLine
+#include "models/all_@(Model.CodeModel.Name).h"
+#include <rapidjson/writer.h>
+#include <autorest_util.h>
+#include <string>
+#include <map>
+#include <vector>
+#include <awaituv.h>
+#include <awaitcurl.h>
+#include "@(Model.TypeName).h"
+#include "@(Model.CodeModel.Name).h"
+@EmptyLine
+
+namespace @Settings.Namespace
+{
+@foreach (var usingString in Model.Usings) {
+    @:using namespace @usingString;
+}
+    using namespace awaituv;
+    using namespace awaitcurl;
+    
+@EmptyLine
+@(Model.TypeName)::@(Model.TypeName)(@Model.CodeModel.Name& client) : client(client), root_handler(client.root_handler)
+{
+}
+@EmptyLine
+#define classname @(Model.TypeName)
+@foreach (MethodCpp method in Model.Methods)
+{
+    // Set the metho ClassName so that we can generate ClassName::MethodName properly in the .cpp file
+    method.ClassName = Model.TypeName;
+@:@(Include(new MethodTemplate(), method))
+@EmptyLine
+}
+
+} // namespace

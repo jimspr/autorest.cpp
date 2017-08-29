@@ -1,0 +1,24 @@
+﻿@using System.Text
+@using AutoRest.Cpp.Model
+@using AutoRest.Cpp.Templates
+@inherits AutoRest.Core.Template<AutoRest.Cpp.Model.MethodGroupCpp>
+@Header("// ")
+@EmptyLine
+namespace @Settings.Namespace
+{
+@foreach (var usingString in Model.Usings) {
+    @:using @usingString;
+}
+@EmptyLine
+    /// <summary>
+    /// Extension methods for @(Model.ExtensionTypeName).
+    /// </summary>
+    public static partial class @(Model.ExtensionTypeName)Extensions
+    {
+        @foreach (MethodCpp method in Model.Methods)
+        {
+            @:@(Include(new ExtensionMethodTemplate(), method))
+            @EmptyLine 
+        }
+    }
+}
