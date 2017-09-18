@@ -97,10 +97,13 @@ namespace @(Settings.Namespace)::@(Settings.ModelsName)
         /// <summary>
         @WrapComment("/// ", ("Initializes a new instance of the " + Model.Name + " class.").EscapeXmlComment())
         /// </summary>
-        @(Model.Name)();
+    @if (Model.NeedsDefaultCtor)
+    {
+        @:@(Model.Name)() = default;
         @EmptyLine
+    }
 
-    @if (!string.IsNullOrEmpty(Model.ConstructorParameters))
+    @if (!string.IsNullOrEmpty(Model.ConstructorParametersH))
     {
         @:/// <summary>
         @:@WrapComment("/// ", ("Initializes a new instance of the " + Model.Name + " class.").EscapeXmlComment())
@@ -109,7 +112,7 @@ namespace @(Settings.Namespace)::@(Settings.ModelsName)
         {
         @:@WrapComment("/// ", parameter)
         }
-        @:@(Model.Name)(@Model.ConstructorParameters);
+        @:@(Model.Name)(@Model.ConstructorParametersH);
     }
 
         @if (Model.Properties.Any(p => p.IsConstant))

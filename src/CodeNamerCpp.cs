@@ -45,6 +45,11 @@ namespace AutoRest.Cpp
                 });
         }
 
+        protected override string RemoveInvalidCharactersNamespace(string name)
+        {
+            return GetValidName(name, '_');
+        }
+
         /// <summary>
         /// Returns true when the name comparison is a special case and should not 
         /// be used to determine name conflicts.
@@ -80,6 +85,15 @@ namespace AutoRest.Cpp
                 return name;
             }
             return CamelCase(RemoveInvalidCharacters(GetEscapedReservedName(name, "Enum")));
+        }
+
+        public override string GetNamespaceName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return name;
+            }
+            return RemoveInvalidCharactersNamespace(name);
         }
 
         public override string EscapeDefaultValue(string defaultValue, IModelType type)

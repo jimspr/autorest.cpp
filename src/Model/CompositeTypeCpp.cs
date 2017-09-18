@@ -37,7 +37,13 @@ namespace AutoRest.Cpp.Model
         public bool NeedsTransformationConverter => Properties.Any(p => p.WasFlattened());
 
         [JsonIgnore]
-        public string ConstructorParameters => _constructorModel.Signature;
+        public bool NeedsDefaultCtor => _constructorModel.NeedsDefaultCtor();
+
+        [JsonIgnore]
+        public string ConstructorParametersH => _constructorModel.Signature(true);
+
+        [JsonIgnore]
+        public string ConstructorParametersCpp => _constructorModel.Signature(false);
 
         [JsonIgnore]
         public IEnumerable<string> ConstructorParametersDocumentation => _constructorModel.SignatureDocumentation;
@@ -140,21 +146,37 @@ namespace AutoRest.Cpp.Model
                 }
             }
 
-            public string Signature
+            // Used to determine if need a default ctor or not
+            public bool NeedsDefaultCtor()
             {
-                get
+                // If there are any params that aren't defaulted then we need a true default ctor
+                foreach (var property in Parameters.Where(p => !p.UnderlyingProperty.IsConstant).Select(p => p.UnderlyingProperty))
                 {
-                    var declarations = new List<string>();
-                    foreach (var property in Parameters.Where(p => !p.UnderlyingProperty.IsConstant).Select(p => p.UnderlyingProperty))
+                    if (property.IsRequired)
+                        return true;
+                }
+                return false;
+            }
+            public string Signature(bool addDefaults)
+            {
+                var declarations = new List<string>();
+                foreach (var property in Parameters.Where(p => !p.UnderlyingProperty.IsConstant).Select(p => p.UnderlyingProperty))
+                {
+                    if (addDefaults & !property.IsRequired)
                     {
-                        //                        string format = (property.IsRequired ? "{0} {1}" : "{0} {1} = {0}()");
+                        string format = "const {0}& {1} = {{}}";
+                        declarations.Add(string.Format(CultureInfo.InvariantCulture,
+                            format, property.ModelTypeName, CodeNamer.Instance.CamelCase(property.Name)));
+                    }
+                    else
+                    {
                         string format = "const {0}& {1}";
                         declarations.Add(string.Format(CultureInfo.InvariantCulture,
                             format, property.ModelTypeName, CodeNamer.Instance.CamelCase(property.Name)));
                     }
-
-                    return string.Join(", ", declarations);
                 }
+
+                return string.Join(", ", declarations);
             }
 
             public string BaseCall => CreateBaseCall(_model);

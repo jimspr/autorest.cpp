@@ -17,13 +17,7 @@ namespace @(Settings.Namespace)::@(Settings.ModelsName)
     using namespace autorest::util;
 @EmptyLine
 
-@(Model.Name)::@(Model.Name)()
-{
-}
-@EmptyLine
-
-
-@if (!string.IsNullOrEmpty(Model.ConstructorParameters))
+@if (!string.IsNullOrEmpty(Model.ConstructorParametersCpp))
 {
 @:/// <summary>
 @:@WrapComment("/// ", ("Initializes a new instance of the " + Model.Name + " class.").EscapeXmlComment())
@@ -32,7 +26,7 @@ foreach (var parameter in Model.ConstructorParametersDocumentation)
 {
 @:@WrapComment("/// ", parameter)
 }
-@:@(Model.Name)::@(Model.Name)(@Model.ConstructorParameters)
+@:@(Model.Name)::@(Model.Name)(@Model.ConstructorParametersCpp)
     if (!string.IsNullOrEmpty(Model.BaseConstructorCall))
     {
     @:@(Model.BaseConstructorCall)
@@ -150,7 +144,7 @@ else
     @:::rapidjson::Value result(::rapidjson::kObjectType);
 }
     
-@foreach(var property in Model.Properties.Where(p => !p.IsConstant))
+@foreach(var property in Model.Properties)
 {
     if (property.WasFlattened())
     {
