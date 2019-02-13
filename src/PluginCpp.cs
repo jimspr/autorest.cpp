@@ -7,7 +7,6 @@ using AutoRest.Core.Extensibility;
 using AutoRest.Core.Model;
 using AutoRest.Core.Utilities;
 using AutoRest.Cpp.Model;
-using static AutoRest.Core.Utilities.DependencyInjection;
 
 namespace AutoRest.Cpp
 {
@@ -15,7 +14,7 @@ namespace AutoRest.Cpp
     {
         public PluginCpp()
         {
-            Context = new Context
+            Context = new DependencyInjection.Context
             {
                 // inherit base settings
                 Context,

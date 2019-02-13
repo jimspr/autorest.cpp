@@ -158,9 +158,6 @@ else
     curl_easy_setopt(curl, CURLOPT_URL, _url.c_str());
     @switch (Model.HttpMethod)
     {
-    case HttpMethod.None:
-    @:HttpMethod.None not supported...
-        break;
     case HttpMethod.Get:
     @:curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
         break;
