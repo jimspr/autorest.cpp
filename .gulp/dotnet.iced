@@ -7,6 +7,10 @@ Import
     source '**/*.csproj'
       .pipe except /preview/ig
 
+  # test projects 
+  tests:() ->
+    source '**/*[Tt]est.csproj'
+
 # ==============================================================================
 # Functions
 
@@ -27,9 +31,9 @@ dotnet = (cmd) ->
 # Tasks
 
 
-task 'build','dotnet',['restore'], (done) ->
-  execute "dotnet build -c #{configuration} #{solution} /nologo /clp:NoSummary", (code, stdout, stderr) ->
-    execute "dotnet publish -c #{configuration} #{sourceFolder} --output #{sourceFolder}/bin/netcoreapp2.0 /nologo /clp:NoSummary ", (code, stdout, stderr) ->
+task 'build','dotnet',['restore', 'version-number'], (done) ->
+  execute "dotnet build -c #{configuration} #{solution} /nologo /clp:NoSummary /p:VersionPrefix=#{version}", (code, stdout, stderr) ->
+    execute "dotnet publish -c #{configuration} #{sourceFolder} --output #{sourceFolder}/bin/netcoreapp2.0 /nologo /clp:NoSummary /p:VersionPrefix=#{version}", (code, stdout, stderr) ->
       done()
 
 task 'clear-cache-on-force', '', (done)->
@@ -53,6 +57,13 @@ task 'restore','restores the dotnet packages for the projects',['clear-cache-on-
       return true
     .pipe foreach (each,done)->
       execute "dotnet restore #{ each.path } /nologo", {retry:1},(code,stderr,stdout) ->
+        done()
+        
+task 'test', 'dotnet', ['restore'] , (done) ->
+  # run xunit test in parallel with each other.
+  tests()
+    .pipe foreach (each,done)->
+      execute "dotnet test #{ each.path } /nologo",{retry:1}, (code,stderr,stdout) ->
         done()
         
 # the dotnet gulp-plugin.

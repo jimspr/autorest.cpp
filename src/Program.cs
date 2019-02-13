@@ -32,30 +32,28 @@ namespace AutoRest.Cpp
     {
         public static int Main(string[] args )
         {
+            Debugger.Await();
             if(args != null && args.Length > 0 && args[0] == "--server") {
-                var connection = new Connection(Console.OpenStandardOutput(), Console.OpenStandardInput());
-                connection.Dispatch<IEnumerable<string>>("GetPluginNames", async () => new []{ "cpp" });
-//                connection.Dispatch<IEnumerable<string>>("GetPluginNames", async () => new []{ "jsonrpcclient", "csharp", "csharp-simplifier" });
-                connection.Dispatch<string, string, bool>("Process", (plugin, sessionId) => new Program(connection, plugin, sessionId).Process());
-                connection.DispatchNotification("Shutdown", connection.Stop);
+                using (var connection = new Connection(Console.OpenStandardOutput(), Console.OpenStandardInput()))
+                {
+                    connection.Dispatch("GetPluginNames", () => Task.FromResult((IEnumerable<string>)new[] { "cpp" }));
+                    //                connection.Dispatch<IEnumerable<string>>("GetPluginNames", async () => new []{ "jsonrpcclient", "csharp", "csharp-simplifier" });
+                    connection.Dispatch<string, string, bool>("Process", (plugin, sessionId) => new Program(connection, plugin, sessionId).Process());
+                    connection.DispatchNotification("Shutdown", connection.Stop);
 
-                // wait for something to do.
-                connection.GetAwaiter().GetResult();
+                    // wait for something to do.
+                    connection.GetAwaiter().GetResult();
 
-                Console.Error.WriteLine("Shutting Down");
-                return 0;
+                    Console.Error.WriteLine("Shutting Down");
+                    return 0;
+                }
             }
             Console.WriteLine("This is not an entry point.");
             Console.WriteLine("Please invoke this extension through AutoRest.");
             return 1;
         }
 
-        private string plugin;
-
-        public Program(Connection connection, string plugin, string sessionId) : base(connection, sessionId)
-        {
-            this.plugin = plugin;
-        }
+        public Program(Connection connection, string plugin, string sessionId) : base(connection, plugin, sessionId) { }
 
         private T GetXmsCodeGenSetting<T>(CodeModel codeModel, string name)
         {
@@ -69,6 +67,15 @@ namespace AutoRest.Cpp
             catch
             {
                 return default(T);
+            }
+        }
+
+        protected void WriteFiles(MemoryFileSystem fs)
+        {
+            var outFiles = fs.GetFiles("", "*", System.IO.SearchOption.AllDirectories);
+            foreach (var outFile in outFiles)
+            {
+                WriteFile(outFile, fs.ReadAllText(outFile), null);
             }
         }
 
@@ -135,7 +142,7 @@ namespace AutoRest.Cpp
                 // process
                 var plugin = ExtensionsLoader.GetPlugin(
                     (await GetValue<bool?>("azure-arm") ?? false ? "Azure." : "") +
-                    this.plugin +
+                    this.Plugin +
                     (await GetValue<bool?>("fluent") ?? false ? ".Fluent" : "") +
                     (await GetValue<bool?>("testgen") ?? false ? ".TestGen" : ""));
                 Settings.PopulateSettings(plugin.Settings, Settings.Instance.CustomSettings);
@@ -156,13 +163,7 @@ namespace AutoRest.Cpp
                 }
 
                 // write out files
-                var outFS = Settings.Instance.FileSystemOutput;
-                var outFiles = outFS.GetFiles("", "*", System.IO.SearchOption.AllDirectories);
-                foreach (var outFile in outFiles)
-                {
-                    WriteFile(outFile, outFS.ReadAllText(outFile), null);
-                }
-
+                WriteFiles(Settings.Instance.FileSystemOutput);
                 return true;
             }
         }

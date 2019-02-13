@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -79,10 +80,23 @@ namespace AutoRest.Cpp.Model
         {
             get
             {
-                var baseProperties = ((BaseModelType as CompositeTypeCpp)?.AllPropertyTemplateModels ??
-                    Enumerable.Empty<InheritedPropertyInfo>()).ReEnumerable();
+                var compositeCpp = BaseModelType as CompositeTypeCpp;
+                IEnumerable<InheritedPropertyInfo> baseProperties;
+                if (compositeCpp == null)
+                {
+                    baseProperties = Enumerable.Empty<InheritedPropertyInfo>();
+                }
+                else
+                {
+                    baseProperties = compositeCpp.AllPropertyTemplateModels.ToList();
+                }
 
-                int depth = baseProperties.Any() ? baseProperties.Max(p => p.Depth) : 0;
+                int depth = 0;
+                foreach (var property in baseProperties)
+                {
+                    depth = Math.Max(depth, property.Depth);
+                }
+
                 return baseProperties.Concat(Properties.Select(p => new InheritedPropertyInfo(p, depth)));
             }
         }
