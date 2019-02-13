@@ -32,7 +32,6 @@ namespace AutoRest.Cpp
     {
         public static int Main(string[] args )
         {
-            Debugger.Await();
             if(args != null && args.Length > 0 && args[0] == "--server") {
                 using (var connection = new Connection(Console.OpenStandardOutput(), Console.OpenStandardInput()))
                 {
